@@ -3,21 +3,14 @@ module Spree
     attr_accessible :title, :url, :category, :position, :enabled, :attachment, :attachment_width, :attachment_height
     
     has_attached_file :attachment,
-                :url  => "/spree/banner/:id/:style_:basename.:extension",
-                :path => ":rails_root/public/spree/banner/:id/:style_:basename.:extension",
-                :styles => ->(a) { 
-                              { :thumbnail => "80x80#",
-                                :custom => "#{a.instance.attachment_width}x#{a.instance.attachment_height}#" }
-                            },
-                :convert_options => {
-                      :thumbnail => "-gravity center"
-                }
+                :url  => "/spree/banner/:id/:basename.:extension",
+                :path => "/spree/banner/:id/:basename.:extension"
     
     after_post_process :find_dimensions
     
     validates_presence_of :category, :attachment_width, :attachment_height
     validates_attachment_presence :attachment
-    validates_attachment_content_type :attachment, :content_type => ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/x-png', 'image/pjpeg'], :message => "deve essere JPG, JPEG, PNG o GIF"
+    validates_attachment_content_type :attachment, :content_type => ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/x-png', 'image/pjpeg', 'application/x-shockwave-flash'], :message => "deve ser JPG, JPEG, PNG, GIF ou SWF"
     
     scope :enable, lambda { |category| {:conditions => {:enabled => true, :category => category}} }
     
@@ -52,9 +45,11 @@ module Spree
       temporary = attachment.queued_for_write[:original]
       filename = temporary.path unless temporary.nil?
       filename = attachment.path if filename.blank?
-      geometry = Paperclip::Geometry.from_file(filename)
-      self.attachment_width  = geometry.width
-      self.attachment_height = geometry.height
+      unless filename.include?('swf')
+        geometry = Paperclip::Geometry.from_file(filename)
+        self.attachment_width  = geometry.width
+        self.attachment_height = geometry.height
+      end
     end
     
   end
